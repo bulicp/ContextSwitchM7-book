@@ -23,11 +23,10 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "pb-tasks.h"
-extern int current_task;
+extern volatile int current_task;
 extern TCB_Type TCB[NTASKS];
 
-void* main_stack_pointer;
-unsigned int tmp;
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,7 +89,6 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -150,6 +148,12 @@ void UsageFault_Handler(void)
 void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
+  __asm volatile
+	(
+	"   nop							\n"
+	"	nop							\n"
+	::
+	);
 
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
@@ -175,13 +179,13 @@ void DebugMon_Handler(void)
   */
 void PendSV_Handler(void)
 {
+  volatile unsigned int tmp1=0;
+  volatile unsigned int tmp2=0;
   /* USER CODE BEGIN PendSV_IRQn 0 */
   // 1. Save context of the interrupted task:
-  if (current_task != -1){
 	__asm__ volatile ( "MRS %0, psp\n\t"
 					   "STMFD %0!, {r4-r11}\n\t"
-					   "MSR psp, %0\n\t" : "=r" (tmp) );
-  }
+					   "MSR psp, %0\n\t" : "=r" (tmp1) );
 
   // 2. Switch context:
   current_task = ContextSwitch(current_task, TCB);
@@ -189,7 +193,8 @@ void PendSV_Handler(void)
   // 3. restore context of the new task:
   __asm__ volatile ( "MRS %0, psp\n\t"
   			         "LDMFD %0!, {r4-r11}\n\t"
-			         "MSR psp, %0\n\t" : "=r" (tmp) );
+			         "MSR psp, %0\n\t" : "=r" (tmp2) );
+  __NOP();
 
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */
@@ -205,7 +210,7 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
   SCB->ICSR |= (unsigned long)0x01 << 28;
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();
+  //HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */

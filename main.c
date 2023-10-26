@@ -50,7 +50,7 @@ DMA_HandleTypeDef hdma_memtomem_dma1_stream0;
 unsigned int stackRegion[NTASKS * TASK_STACK_SIZE];
 TCB_Type TCB[NTASKS];				// Array of Tasks Control Blocks
 void (*TaskFunctions[NTASKS])();	// Tabela naslovov funkcij opravil
-int current_task = -1;
+volatile int current_task = -1;
 
 /* USER CODE END PV */
 
@@ -103,7 +103,7 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
+  //MX_GPIO_Init();
   //MX_DMA_Init();
   /* USER CODE BEGIN 2 */
   Pa3_GPIO_Init();
