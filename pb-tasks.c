@@ -10,6 +10,9 @@
 
 
 
+unsigned int stackRegion[NTASKS * TASK_STACK_SIZE];
+TCB_Type TCB[NTASKS];
+volatile int current_task = -1;
 /*
 	The function creates a new task. Creating a new task involves:
 
@@ -109,6 +112,37 @@ void InitScheduler(unsigned int* pStackRegion, TCB_Type pTCB[], void (*TaskFunct
 	//    Task0 will be called by main() and will be the first task interrupted.
 	//    Its HWSF and SWSF will be created upon interrupt/contecxt switch
 	for(int i=1; i<NTASKS; i++){
+		TaskInit(&pTCB[i]);
+	}
+
+	// set PSP to Task0.SP:
+	__set_PSP((unsigned int)pTCB[0].sp);
+
+}
+
+
+/*
+	The function initializes the scheduler which will be started in by SVC.
+	Our scheduler is very simple and has fixed number of tasks that are created
+	at the start of scheduler.
+	The tasks never stop and the number of the running task never changes.
+
+ 	Pa3cio Bulic, 25.10.2023
+*/
+
+void InitSchedulerSVC(unsigned int* pStackRegion, TCB_Type pTCB[], void (*TaskFunctions[])()){
+	unsigned int* pTaskStackBase;
+
+	// 1. create all tasks:
+	for(int i=0; i<NTASKS; i++){
+		pTaskStackBase = pStackRegion + (i+1)*TASK_STACK_SIZE;
+		TaskCreate(&pTCB[i], pTaskStackBase, TaskFunctions[i]);
+	}
+
+	// 2. initialize all tasks
+	//    The main() and will be first interrupted by SVC.
+	//    Task0 will be entered from SVC Handler
+	for(int i=0; i<NTASKS; i++){
 		TaskInit(&pTCB[i]);
 	}
 

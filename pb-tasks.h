@@ -46,14 +46,80 @@ typedef struct{
 void TaskCreate(TCB_Type* pTCB, unsigned int* pTaskStackBase, void (*TaskFunction)());
 void TaskInit(TCB_Type* pTCB);
 void InitScheduler(unsigned int* pStackRegion, TCB_Type pTCB[], void (*TaskFunctions[])());
+void InitSchedulerSVC(unsigned int* pStackRegion, TCB_Type pTCB[], void (*TaskFunctions[])());
 int  ContextSwitch(int current_task, TCB_Type pTCB[]);
-int ZamenjajTask(int current_task, TCB_Type pTCB[]);
 
 
 void Task0();
 void Task1();
 void Task2();
 void Task3();
+
+
+
+/*
+	The inline function saves the context (r4-r11) into the software stack-frame on the process stack.
+ 	The hardware stack frame already contains the context saved by hardware (pc, lr, sp, r0-r3, r12, spr)
+
+ 	This function should be defined into the same translational module in which is use
+ 	as it is defined as static inline!
+
+ 	Pa3cio Bulic, 27.10.2023
+*/
+__attribute__((always_inline)) static inline void __SAVE_CONTEXT(void)
+{
+  unsigned int tmp;
+  __asm__ volatile
+  (
+  " MRS   %0, psp                    \n"
+  " STMFD %0!, {r4-r11}              \n"
+  " MSR   psp, %0                    \n"
+  : "=r" (tmp)
+  );
+}
+
+
+/*
+	The function restores the context (r4-r11) from the software stack-frame on the process stack.
+
+ 	This function should be defined into the same translational module in which is use
+ 	as it is defined as static inline!
+
+ 	Pa3cio Bulic, 27.10.2023
+*/
+__attribute__((always_inline)) static inline void __RESTORE_CONTEXT(void)
+{
+  unsigned int tmp;
+  __asm__ volatile
+  (
+  " MRS   %0, psp                    \n"
+  " LDMFD %0!, {r4-r11}              \n"
+  " MSR   psp, %0                    \n"
+  : "=r" (tmp)
+  );
+}
+
+
+
+
+/*
+	The function implements the SVC handler in
+
+ 	This function should be defined into the same translational module in which is use
+ 	as it is defined as static inline!
+
+ 	Pa3cio Bulic, 27.10.2023
+*/
+__attribute__((always_inline)) static inline void __SVC(unsigned int number)
+{
+	 __asm__ volatile ("SVC %0" : : "r" (number) : );
+}
+
+
+
+
+
+
 
 
 

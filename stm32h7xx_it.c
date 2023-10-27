@@ -25,7 +25,9 @@
 #include "pb-tasks.h"
 extern volatile int current_task;
 extern TCB_Type TCB[NTASKS];
-
+extern unsigned int stackRegion[NTASKS * TASK_STACK_SIZE];
+extern void (*TaskFunctions[NTASKS])();
+//unsigned int tmp;
 
 /* USER CODE END Includes */
 
@@ -74,7 +76,6 @@ extern TCB_Type TCB[NTASKS];
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
   while (1)
@@ -148,12 +149,21 @@ void UsageFault_Handler(void)
 void SVC_Handler(void)
 {
   /* USER CODE BEGIN SVCall_IRQn 0 */
-  __asm volatile
-	(
-	"   nop							\n"
-	"	nop							\n"
-	::
-	);
+  /* We are here, because main() called SVC. As we interrupted main(),
+   * there is no need to save its context. We should never return to main()!!
+   * The SVC_Handler should start the first task - Task 0
+   * The Task 0 is started by restoring its SW context and its HW context
+   * upon the exception return.
+   */
+  // set PSP to Task0.SP:
+  __NOP(); // just to ensure debugger stops here
+  __set_PSP((unsigned int)TCB[0].sp);
+  current_task = 0;
+  __NOP(); // just to ensure debugger stops here
+  // Restore the context of the Task 0:
+  __RESTORE_CONTEXT();
+  // Enable all interrupts:
+  __set_BASEPRI(0x00000000);
 
   /* USER CODE END SVCall_IRQn 0 */
   /* USER CODE BEGIN SVCall_IRQn 1 */
@@ -179,22 +189,17 @@ void DebugMon_Handler(void)
   */
 void PendSV_Handler(void)
 {
-  volatile unsigned int tmp1=0;
-  volatile unsigned int tmp2=0;
   /* USER CODE BEGIN PendSV_IRQn 0 */
   // 1. Save context of the interrupted task:
-	__asm__ volatile ( "MRS %0, psp\n\t"
-					   "STMFD %0!, {r4-r11}\n\t"
-					   "MSR psp, %0\n\t" : "=r" (tmp1) );
+  __NOP(); // just to ensure debugger stops here
+  __SAVE_CONTEXT();
 
   // 2. Switch context:
   current_task = ContextSwitch(current_task, TCB);
 
   // 3. restore context of the new task:
-  __asm__ volatile ( "MRS %0, psp\n\t"
-  			         "LDMFD %0!, {r4-r11}\n\t"
-			         "MSR psp, %0\n\t" : "=r" (tmp2) );
-  __NOP();
+  __RESTORE_CONTEXT();
+  __NOP(); // just to ensure debugger stops here
 
   /* USER CODE END PendSV_IRQn 0 */
   /* USER CODE BEGIN PendSV_IRQn 1 */

@@ -34,6 +34,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define __SVC_SCHEDULER__
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,10 +49,10 @@ DMA_HandleTypeDef hdma_memtomem_dma1_stream0;
 /* USER CODE BEGIN PV */
 
 // Ustvarimo področje v pomnilniku, kjer bodo skladi za vsako opravilo:
-unsigned int stackRegion[NTASKS * TASK_STACK_SIZE];
-TCB_Type TCB[NTASKS];				// Array of Tasks Control Blocks
+extern unsigned int stackRegion[NTASKS * TASK_STACK_SIZE];
+extern TCB_Type TCB[NTASKS];				// Array of Tasks Control Blocks
 void (*TaskFunctions[NTASKS])();	// Tabela naslovov funkcij opravil
-volatile int current_task = -1;
+extern volatile int current_task;
 
 /* USER CODE END PV */
 
@@ -76,15 +78,20 @@ static void Pa3_GPIO_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  // Disable ALL interrupts:
-  __set_PRIMASK(0x01);
+  __set_BASEPRI(0x01 << 4); // alow only SVCall;
 
   TaskFunctions[0] = Task0;
   TaskFunctions[1] = Task1;
   TaskFunctions[2] = Task2;
   TaskFunctions[3] = Task3;
 
+#ifndef __SVC_SCHEDULER__
   InitScheduler(stackRegion, TCB, TaskFunctions);
+#endif
+
+#ifdef __SVC_SCHEDULER__
+  InitSchedulerSVC(stackRegion, TCB, TaskFunctions);
+#endif
 
   /* USER CODE END 1 */
 
@@ -108,24 +115,27 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Pa3_GPIO_Init();
 
-  HAL_NVIC_SetPriority(PendSV_IRQn, 15, 15);  // Set PendSV to lowest level
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);   // Set SysTick to highest level
+  HAL_NVIC_SetPriority(SVCall_IRQn, 0, 0);   // Set SVCall to highest level
+  HAL_NVIC_SetPriority(SysTick_IRQn, 1, 0);   // Set SysTick priority
+  HAL_NVIC_SetPriority(PendSV_IRQn, 15, 0);  // Set PendSV to lowest level
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 10, 0); // Set Btn priority
-  HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
+  //HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
 
-  current_task = 0;
-
-  // Enable ALL interrupts:
-  __set_PRIMASK(0x00000000);
 
 
   // Switch to NOT PRIVILEDGED with PSP (Set CONTROL to 0x03)
   __set_CONTROL(0x00000003);
   __ISB(); // Execute ISB after changing CONTROL (architectural recommendation)
 
+#ifdef __SVC_SCHEDULER__
+  __asm volatile("svc 0");
+#endif
 
-  // Call the first task:
+#ifndef __SVC_SCHEDULER__
+  //Call the first task:
   Task0();  // never return!
+#endif
+
 
 
   /*
