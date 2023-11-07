@@ -213,9 +213,11 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
+
+  // Pend a PendSV exception by writing 1 to PENDSVSET at bit 28 in ICSR
   SCB->ICSR |= (unsigned long)0x01 << 28;
   /* USER CODE END SysTick_IRQn 0 */
-  //HAL_IncTick();
+  HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
   /* USER CODE END SysTick_IRQn 1 */

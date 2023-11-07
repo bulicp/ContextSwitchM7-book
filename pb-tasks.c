@@ -193,10 +193,10 @@ void Task0(){
 
 		HAL_GPIO_WritePin(GPIOI, GPIO_PIN_13, GPIO_PIN_RESET);
 		//HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_2, GPIO_PIN_RESET);
-		primitivedelay(480000);
+		primitivedelay(200000);
 
 		HAL_GPIO_WritePin(GPIOI, GPIO_PIN_13, GPIO_PIN_SET);
-		primitivedelay(480000);
+		primitivedelay(200000);
 
 	}
 }
@@ -213,9 +213,9 @@ void Task1(){
 void Task2(){
 	while(1) {
 		HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_2, GPIO_PIN_RESET);
-		primitivedelay(300000);
+		primitivedelay(400000);
 	    HAL_GPIO_WritePin(GPIOJ, GPIO_PIN_2, GPIO_PIN_SET);
-	    primitivedelay(300000);
+	    primitivedelay(400000);
 	}
 }
 

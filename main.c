@@ -78,7 +78,10 @@ static void Pa3_GPIO_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  __set_BASEPRI(0x01 << 4); // alow only SVCall;
+  // Allow only SVCall (priority level 0) during the scheduler initialization process
+  // Exclude all exceptions but 0.
+  // CM7 uses __NVIC_PRIO_BITS (4) Bits for the Priority Levels
+  __set_BASEPRI(0x01 << __NVIC_PRIO_BITS);
 
   TaskFunctions[0] = Task0;
   TaskFunctions[1] = Task1;
@@ -320,7 +323,7 @@ static void Pa3_GPIO_Init(void)
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  //HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
   HAL_GPIO_WritePin(LED_GREE_GPIO_Port, LED_GREE_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(GPIOI, GPIO_PIN_13, GPIO_PIN_RESET);
